@@ -1,0 +1,38 @@
+# Stage 1: Build the application with Maven
+# This stage uses a base image that includes the Java Development Kit (JDK) and Maven to build the project.
+FROM maven:3.8.5-openjdk-17 AS build
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy the Maven project file. This is done separately to leverage Docker's layer caching.
+# If the pom.xml hasn't changed, Docker will reuse the cached dependency layer.
+COPY pom.xml .
+
+# Download all the project dependencies
+RUN mvn dependency:go-offline
+
+# Copy the rest of your application's source code
+COPY src ./src
+
+# Package the application into an executable JAR file.
+# The tests are skipped to speed up the build process in this context.
+RUN mvn package -DskipTests
+
+
+# Stage 2: Create the final, lightweight production image
+# This stage uses a minimal base image with only the Java Runtime Environment (JRE),
+# as we no longer need the full JDK or Maven.
+FROM eclipse-temurin:17-jre
+
+# Set the working directory for the final image
+WORKDIR /app
+
+# Copy the executable JAR file from the 'build' stage into the final image
+COPY --from=build /app/target/*.jar app.jar
+
+# Expose the port that the Spring Boot application runs on (default is 8080)
+EXPOSE 8080
+
+# The command to run the application when the container starts
+ENTRYPOINT ["java", "-jar", "app.jar"]

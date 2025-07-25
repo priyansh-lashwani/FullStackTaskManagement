@@ -1,0 +1,55 @@
+
+
+# This section defines all the services (containers) that make up your application.
+services:
+  # Defines the PostgreSQL database service.
+  db:
+    image: postgres:14-alpine
+    container_name: my-postgres-db
+    # Environment variables to configure the PostgreSQL container.
+    environment:
+      POSTGRES_USER: myadmin
+      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_DB: taskdb # This will automatically create the 'taskdb' database on startup.
+    ports:
+      # Maps port 5432 on the host to port 5432 in the container for direct database access if needed.
+      - "5432:5432"
+    volumes:
+      # Persists the database data on the host machine to prevent data loss when the container is removed.
+      - postgres_data:/var/lib/postgresql/data
+
+  # Defines the Spring Boot backend service.
+  backend:
+    # Tells Docker Compose to build an image from the Dockerfile located in the './demo3' directory.
+    build: ./demo3
+    container_name: my-spring-app
+    ports:
+      # Maps port 8080 on the host to port 8080 in the container.
+      - "8080:8080"
+    # Ensures that the 'db' service is started before the 'backend' service starts.
+    depends_on:
+      - db
+    # Environment variables passed to the backend container.
+    environment:
+      # These must match the credentials used by the 'db' service.
+      POSTGRES_USER: myadmin
+      POSTGRES_PASSWORD: mysecretpassword
+      # This overrides the datasource URL in your application.properties.
+      # It uses the service name 'db' as the hostname to connect to the database container.
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/taskdb
+
+  # Defines the React frontend service.
+  frontend:
+    # Tells Docker Compose to build an image from the Dockerfile located in the './task-ui-app' directory.
+    build: ./task-ui-app
+    container_name: my-react-app
+    ports:
+      # Maps port 3001 on the host to port 80 in the container.
+      - "3001:80"
+    # Ensures the 'backend' service is running before the frontend starts.
+    depends_on:
+      - backend
+
+# Defines the named volume used by the 'db' service for data persistence.
+volumes:
+  postgres_data:

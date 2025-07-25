@@ -1,0 +1,5 @@
+/task-ui-app/node_modules
+/demo3/target/
+/demo3/.mvn/wrapper/maven-wrapper.jar
+/demo3/!**/src/main/**/target/
+/demo3/!**/src/test/**/target/
